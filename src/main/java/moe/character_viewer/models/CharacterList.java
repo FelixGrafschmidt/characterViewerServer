@@ -1,4 +1,4 @@
-package moe.characterViewer.models;
+package moe.character_viewer.models;
 
 import java.util.List;
 

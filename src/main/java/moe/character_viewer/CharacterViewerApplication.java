@@ -1,4 +1,4 @@
-package moe.characterViewer;
+package moe.character_viewer;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

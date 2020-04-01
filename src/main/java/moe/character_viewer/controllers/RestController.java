@@ -1,4 +1,4 @@
-package moe.characterViewer.controllers;
+package moe.character_viewer.controllers;
 
 import java.util.UUID;
 
@@ -12,19 +12,17 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.InsertOneOptions;
 
 import org.bson.Document;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import moe.characterViewer.models.CharacterList;
-import moe.characterViewer.models.Result;
+import moe.character_viewer.models.CharacterList;
+import moe.character_viewer.models.Result;
 
 /**
  * RestController
@@ -48,14 +46,12 @@ public class RestController {
 	}
 
 	@PostMapping(value = "/saveList")
-	public String saveList(@RequestBody String list, HttpServletResponse response) {
+	public String saveList(@RequestBody CharacterList characters, HttpServletResponse response) {
 
 		Result result = new Result();
 		result.setStatus("error");
 
 		try {
-			System.out.println(list);
-			CharacterList characters = objectMapper.readValue(list, CharacterList.class);
 			int id = characters.get_id();
 			if (id == 0) {
 				id = UUID.randomUUID().hashCode();
