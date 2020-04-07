@@ -1,28 +1,22 @@
 package moe.character_viewer.controllers;
 
+import java.util.List;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletResponse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-
-import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import moe.character_viewer.models.CharacterList;
-import moe.character_viewer.models.Result;
+import moe.character_viewer.interfaces.CharacterListRepository;
+import moe.character_viewer.models.Character;
+import moe.character_viewer.models.CharacterListModel;
 
 /**
  * RestController
@@ -31,53 +25,31 @@ import moe.character_viewer.models.Result;
 @ResponseBody
 public class RestController {
 
-	private static MongoClient client;
-	private static MongoDatabase db;
-	private static MongoCollection<Document> collection;
+	@Autowired
+	private CharacterListRepository repo;
 
-	private static ObjectMapper objectMapper;
-
-	static {
-		client = MongoClients.create("mongodb://127.0.0.1:27017");
-		db = client.getDatabase("characterlists");
-		collection = db.getCollection("characterlists");
-
-		objectMapper = new ObjectMapper();
-	}
-
-	@PostMapping(value = "/saveList")
-	public String saveList(@RequestBody CharacterList characters, HttpServletResponse response) {
-
-		Result result = new Result();
-		result.setStatus("error");
-
-		try {
-			int id = characters.get_id();
-			if (id == 0) {
-				id = UUID.randomUUID().hashCode();
-				characters.set_id(id);
-				collection.insertOne(Document.parse(objectMapper.writeValueAsString(characters)));
-			} else {
-				collection.findOneAndReplace(Filters.eq("_id", id),
-						Document.parse(objectMapper.writeValueAsString(characters)));
-			}
-			result.setStatus("success");
-			result.set_id(id);
-		} catch (JsonMappingException e) {
-			response.setStatus(500);
-			e.printStackTrace();
-		} catch (JsonProcessingException e) {
-			response.setStatus(500);
-			e.printStackTrace();
+	@PostMapping(value = { "/saveList",
+			"/saveList/{id}" }, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
+	public String saveList(@RequestBody List<Character> characters, HttpServletResponse response,
+			@PathVariable(required = false) String id) {
+		if (id == null) {
+			id = UUID.randomUUID().toString();
+			var characterList = new CharacterListModel(characters, id);
+			repo.save(characterList);
+		} else {
+			var characterList = repo.findById(id).orElse(new CharacterListModel());
+			characterList.setCharacters(characters);
+			characterList.setId(id);
+			repo.save(characterList);
 		}
-
-		return result.toString();
+		return id;
 	}
 
-	@GetMapping(value = "getList", params = "id")
-	public String getList(@RequestParam int id) {
+	@GetMapping(value = "/getList/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<Character> getList(@PathVariable String id) {
 
-		Document doc = collection.find(Filters.eq("_id", id)).first();
-		return doc.toJson();
+		CharacterListModel characterList = repo.findById(id).orElse(new CharacterListModel());
+
+		return characterList.getCharacters();
 	}
 }
