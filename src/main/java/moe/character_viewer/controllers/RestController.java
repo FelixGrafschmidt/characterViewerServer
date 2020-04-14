@@ -16,9 +16,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import moe.character_viewer.interfaces.CharacterListRepository;
 import moe.character_viewer.interfaces.CollectionRepository;
-import moe.character_viewer.models.Character;
-import moe.character_viewer.models.CharacterListModel;
 import moe.character_viewer.models.Collection;
+import moe.character_viewer.models.ListModel;
 
 /**
  * RestController
@@ -33,33 +32,34 @@ public class RestController {
 	@Autowired
 	private CollectionRepository collectionRepository;
 
-	@PostMapping(value = "/saveCharacters/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-	public String saveCharacters(@RequestBody List<Character> characters, HttpServletResponse response,
-			@PathVariable String id) {
-		var characterList = characterRepository.findById(id).orElse(new CharacterListModel());
-		characterList.setCharacters(characters);
+	@PostMapping(value = "/saveList/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
+	public String saveList(@RequestBody ListModel list, HttpServletResponse response, @PathVariable String id) {
+		var characterList = characterRepository.findById(id).orElse(new ListModel());
+		characterList.setCharacters(list.getCharacters() != null ? list.getCharacters() : List.of());
 		characterList.setId(id);
+		characterList.setName(list.getName());
 		characterRepository.save(characterList);
 		return id;
 	}
 
-	@GetMapping(value = "/getCharacters/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public List<Character> getCharacters(@PathVariable String id, HttpServletResponse response) {
+	@GetMapping(value = "/getList/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ListModel getList(@PathVariable String id, HttpServletResponse response) {
 
-		CharacterListModel characterList = characterRepository.findById(id).orElse(new CharacterListModel());
+		ListModel characterList = characterRepository.findById(id).orElse(new ListModel());
 
-		if (characterList.getCharacters().isEmpty()) {
+		if (characterList.getId() == null) {
 			response.setStatus(HttpStatus.NOT_FOUND.value());
+		} else if (characterList.getCharacters() == null) {
+			characterList.setCharacters(List.of());
 		}
 
-		return characterList.getCharacters();
+		return characterList;
 	}
 
 	@PostMapping(value = "/saveCollection/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
 	public String saveCollection(@RequestBody Collection collection, @PathVariable String id) {
 		var loadedCollection = collectionRepository.findById(id).orElse(new Collection());
-		loadedCollection.clear();
-		loadedCollection.addAll(collection);
+		loadedCollection.setLists(collection.getLists());
 		loadedCollection.setId(id);
 		collectionRepository.save(loadedCollection);
 		return id;
@@ -70,7 +70,11 @@ public class RestController {
 
 		var collection = collectionRepository.findById(id).orElse(new Collection());
 
-		if (collection.isEmpty()) {
+		if (collection.getLists() == null) {
+			collection.setLists(List.of());
+		}
+
+		if (collection.getId() == null) {
 			response.setStatus(HttpStatus.NOT_FOUND.value());
 		}
 
